@@ -1,71 +1,73 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import com.example.japanesenamegenerator.nameGenerator.responses.LastNameResponse;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.time.Duration;
+import java.util.*;
+import java.util.stream.Stream;
 
 @Service
 public class NameService {
 
-    private final OkHttpClient okHttpClient = new OkHttpClient().newBuilder()
-            .followRedirects(false)
-            .followSslRedirects(false)
-            .retryOnConnectionFailure(true)
-            .connectTimeout(Duration.ofSeconds(120L))
-            .readTimeout(Duration.ofSeconds(120L))
-            .build();
 
-    public String generateName(String surName, String lastName) {
+    public LastNameResponse generateName(String surName, String firstName, String gender) {
 
-        if(lastName.length() > 1){
-            lastName = lastName.substring(0, 1);
-        }
+        List<String> firstNameList = Arrays.stream(firstName.split("")).toList();
+        List<String> firstNameUrls = new ArrayList<>();
+        String surNameUrl = String.format("https://japanese-names.info/last-names/search-result/freeword-%s/", surName);
 
-        String lastNameUrl = String.format("https://japanese-names.info/last-names/search-result/freeword-%s/", lastName);
-        String responseBody ;
-        try (Response response = request("GET", lastNameUrl, null)) {
+        String genderParam = gender == null ? "" : String.format("gender-%s_", gender);
+        firstNameList.forEach(firstNameString ->
+                firstNameUrls.add(
+                        String.format(
+                                "https://japanese-names.info/first-names/search-result/%sfreeword-%s/",
+                                genderParam, firstNameString)
+                )
+        );
 
-            responseBody = responseToString(response);
+        List<Element> firstNames = new ArrayList<>();
+        firstNameUrls.forEach(
+                url -> {
+                    try {
+                        Document doc = Jsoup.connect(url).get();
+                        Elements names = doc.select(".name_summary");
+                        List<Element> stringList = names.stream().toList();
+                        firstNames.addAll(stringList);
+
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        Random random = new Random();
+        Element randomElement = firstNames.get(random.nextInt(firstNames.size()));
+        String firstNamePronounce = randomElement.siblingElements().select("em").text();
+        String japaneseFirstName = Objects.requireNonNull(randomElement.selectFirst("strong")).text();
+
+        String japaneseSurName = "";
+        String surNamePronounce = "";
+        int households = 0;
+        try {
+            Document doc = Jsoup.connect(surNameUrl).get();
+            Element names = doc.selectFirst(".name_summary");
+            Element siblingElement = Objects.requireNonNull(names).siblingElements().first();
+
+            String householdsText = names.text();
+            String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
+            households = Integer.parseInt(extractedNumber);
+            japaneseSurName = names.selectFirst("strong").text();
+            surNamePronounce = siblingElement.select("em").text();
 
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
+            throw new RuntimeException(e);
         }
 
-
-        System.out.println();
-        return "";
+        return new LastNameResponse(japaneseSurName, surNamePronounce, japaneseFirstName, firstNamePronounce, households);
     }
-
-    private Response request(String method, String url, RequestBody body)
-            throws IOException {
-
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(Duration.ofSeconds(15L))
-                .readTimeout(Duration.ofSeconds(15L)).build();
-        Request request = new Request.Builder()
-                .url(url)
-                .method(method, body)
-                .build();
-        return client.newCall(request).execute();
-    }
-
-    private String responseToString(Response response) throws IOException {
-        try (BufferedReader br = new BufferedReader(response.body().charStream())) {
-            StringBuilder responseBuffer = new StringBuilder();
-            String inputLine;
-            while ((inputLine = br.readLine()) != null) {
-                responseBuffer.append(inputLine);
-            }
-            return responseBuffer.toString();
-        }
-    }
-
 
 }

@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator.nameGenerator.controller;
 
+import com.example.japanesenamegenerator.nameGenerator.responses.LastNameResponse;
 import com.example.japanesenamegenerator.nameGenerator.service.NameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +14,12 @@ public class NameController {
 
     private final NameService nameService;
 
-    @GetMapping("api/name/{surName}-{firstName}")
-    public ResponseEntity<String> generateName(@PathVariable("surName") String surName, @PathVariable("firstName") String firstName) {
+    @GetMapping("api/name/{surName}-{firstName}-{gender}")
+    public ResponseEntity<LastNameResponse> generateName(@PathVariable("surName") String surName,
+                                                         @PathVariable("firstName") String firstName,
+                                                         @PathVariable String gender) {
 
-        return ResponseEntity.ok(nameService.generateName(surName, firstName));
+        return ResponseEntity.ok(nameService.generateName(surName, firstName, gender));
     }
 
 
