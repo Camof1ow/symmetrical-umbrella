@@ -17,6 +17,10 @@ public class NameService {
 
     public LastNameResponse generateName(String surName, String firstName, String gender) {
 
+        String japaneseSurName = "", surNamePronounce = "";
+        String firstNamePronounce = "", japaneseFirstName ="";
+        int households = 0;
+
         List<String> firstNameList = Arrays.stream(firstName.split("")).toList();
         List<String> firstNameUrls = new ArrayList<>();
         String surNameUrl = String.format("https://japanese-names.info/last-names/search-result/freeword-%s/", surName);
@@ -46,12 +50,9 @@ public class NameService {
 
         Random random = new Random();
         Element randomElement = firstNames.get(random.nextInt(firstNames.size()));
-        String firstNamePronounce = randomElement.siblingElements().select("em").text();
-        String japaneseFirstName = Objects.requireNonNull(randomElement.selectFirst("strong")).text();
+        firstNamePronounce = randomElement.siblingElements().select("em").text();
+        japaneseFirstName = Objects.requireNonNull(randomElement.selectFirst("strong")).text();
 
-        String japaneseSurName = "";
-        String surNamePronounce = "";
-        int households = 0;
         try {
             Document doc = Jsoup.connect(surNameUrl).get();
             Element names = doc.selectFirst(".name_summary");
