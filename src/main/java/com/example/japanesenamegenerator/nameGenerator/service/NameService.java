@@ -16,7 +16,10 @@ public class NameService {
 
 
     public LastNameResponse generateName(String surName, String firstName, String gender) {
-
+        /*
+        todo: 일본에서 안쓰이는 한자 변경이 필요.
+         http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php
+         */
         String japaneseSurName = "", surNamePronounce = "";
         String firstNamePronounce = "", japaneseFirstName ="";
         int households = 0;
@@ -69,6 +72,11 @@ public class NameService {
         }
 
         return new LastNameResponse(japaneseSurName, surNamePronounce, japaneseFirstName, firstNamePronounce, households);
+    }
+
+    private String nameConvert(String koreanName){
+
+        return "";
     }
 
 }
