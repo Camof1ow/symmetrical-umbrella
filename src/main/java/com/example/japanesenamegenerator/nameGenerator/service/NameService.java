@@ -1,6 +1,7 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
 import com.example.japanesenamegenerator.nameGenerator.responses.LastNameResponse;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -21,8 +22,13 @@ public class NameService {
          http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php
          */
         String japaneseSurName = "", surNamePronounce = "";
-        String firstNamePronounce = "", japaneseFirstName ="";
+        String firstNamePronounce = "", japaneseFirstName = "";
         int households = 0;
+
+        String converted = nameConvert(String.format("%s_%s", surName, firstName));
+        String[] split = converted.split("_");
+        surName = split[0];
+        firstName = split[1];
 
         List<String> firstNameList = Arrays.stream(firstName.split("")).toList();
         List<String> firstNameUrls = new ArrayList<>();
@@ -74,9 +80,29 @@ public class NameService {
         return new LastNameResponse(japaneseSurName, surNamePronounce, japaneseFirstName, firstNamePronounce, households);
     }
 
-    private String nameConvert(String koreanName){
+    private String nameConvert(String koreanName) {
 
-        return "";
+        String url = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php"; // 요청할 URL
+        String param1Key = "contents";
+        String param1Value = koreanName;
+        String param2Key = "firstinput";
+        String param2Value = "OK";
+
+        try {
+            Connection.Response response = Jsoup.connect(url)
+                    .method(Connection.Method.POST)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .data(param1Key, param1Value)
+                    .data(param2Key, param2Value)
+                    .execute();
+
+            Document document = response.parse();
+            return document.selectFirst(".finalresult").text();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new IllegalArgumentException("이름 변환 중 에러가 발생하였습니다.");
+        }
     }
 
 }
