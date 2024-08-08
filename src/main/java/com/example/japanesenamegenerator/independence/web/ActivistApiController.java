@@ -17,6 +17,5 @@ public class ActivistApiController {
     @PostMapping
     public void create() {
         ActivistResponse activistResponse = activistService.fetchApiData();
-        System.out.println(activistResponse);
     }
 }
