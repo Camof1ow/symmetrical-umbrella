@@ -1,0 +1,34 @@
+# 커밋 유형:
+# feat:     새로운 기능 추가
+# fix:      버그 수정
+# docs:     문서 변경
+# style:    코드 포맷팅, 세미콜론 누락 등
+# refactor: 코드 리팩토링 (기능 변화 없음)
+# test:     누락된 테스트 추가 또는 기존 테스트 수정
+# chore:    빌드 프로세스 또는 보조 도구 변경 (라이브러리 추가, 제거 등)
+# perf:     성능 개선
+
+# 커밋 메시지 구조:
+# <type>(<scope>): <subject>
+# 빈 줄
+# 상세 설명
+# 빈 줄
+# 관련된 이슈 번호: #123
+
+# 예시:
+# feat(authentication): add OAuth2 login
+#
+# Implement OAuth2 login with Google and Facebook.
+# This feature allows users to log in using their social media accounts.
+#
+# Closes #15
+
+<type>(<scope>): <subject>
+
+# 여기서부터 상세 설명을 작성합니다. 필요하지 않다면 이 부분을 제거해도 됩니다.
+#
+# 예시:
+# - 변경 사항 1
+# - 변경 사항 2
+#
+# 관련된 이슈 번호: #123
