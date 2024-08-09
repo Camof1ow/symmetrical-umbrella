@@ -90,16 +90,40 @@ public class ActivistService {
 
     public List<Activist> convert(List<ActivistResponse> responses) {
         return responses.stream()
-            .filter(x-> !ObjectUtils.isEmpty(x.getItems()))
+            .filter(x -> !ObjectUtils.isEmpty(x.getItems()))
             .flatMap(response -> response.getItems().stream())
             .map(this::convertToEntity)
             .toList();
     }
+
     private Activist convertToEntity(ActivistResponse.DataItem dataItem) {
         return modelMapper.map(dataItem, Activist.class);
     }
 
     public void saveAll(List<Activist> entities) {
         activistRepository.saveAll(entities);
+    }
+
+    public void findSameOrSimilarName(String name) {
+
+        List<Activist> allByName = activistRepository.findByNameContaining(name);
+        if(!ObjectUtils.isEmpty(allByName)){
+//            return 완전 똑같은 이름이 있으면 여기서 리턴
+            log.info("[allByName] find exactly same name '{}': {}", name, allByName.getFirst().getName());
+        }
+
+        List<Activist> activists = activistRepository.findBySimilarName(name);
+        log.info("[activists] search name : '{}', response names: {}",
+            name, activists.stream().map(Activist::getName).toList()
+        );
+
+        List<Activist> byFullTextSearch = activistRepository.findByFullTextSearch(name);
+        log.info("[byFullTextSearch] search name : '{}', response names: {}",
+            name, byFullTextSearch.stream().map(Activist::getName).toList()
+        );
+    }
+
+    public void deleteAll() {
+        activistRepository.deleteAll();
     }
 }

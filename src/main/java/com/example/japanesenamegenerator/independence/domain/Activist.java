@@ -7,11 +7,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
+import lombok.Setter;
 
 
+@Getter
+@Setter
 @Entity
 @Table(name = "activists")
-@Getter
 public class Activist {
 
     @Id
@@ -49,7 +51,7 @@ public class Activist {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "activities")
+    @Column(name = "activities", columnDefinition = "TEXT")
     private String activities;
 
     @Column(name = "engaged_events")
@@ -58,3 +60,4 @@ public class Activist {
     @Column(name = "engaged_organizations")
     private String engagedOrganizations;
 }
+
