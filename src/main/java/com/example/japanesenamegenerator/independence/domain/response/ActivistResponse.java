@@ -2,10 +2,13 @@ package com.example.japanesenamegenerator.independence.domain.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@JacksonXmlRootElement(localName = "root")
 @Getter
 @NoArgsConstructor
 public class ActivistResponse {
@@ -17,6 +20,7 @@ public class ActivistResponse {
     private int totalCount;
 
     @JacksonXmlProperty(localName = "page_count")
+    @Setter
     private int pageCount;
 
     @JacksonXmlProperty(localName = "page")
@@ -25,7 +29,7 @@ public class ActivistResponse {
     @JacksonXmlProperty(localName = "article_count")
     private int articleCount;
 
-    @JacksonXmlElementWrapper(localName = "item", useWrapping = false)
+    @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "item")
     private List<DataItem> items;
 

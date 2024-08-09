@@ -13,5 +13,4 @@ public interface ActivistClient {
         @RequestParam("type") String type,
         @RequestParam("movementFamily") String movementFamily,
         @RequestParam("page") int page);
-
 }
