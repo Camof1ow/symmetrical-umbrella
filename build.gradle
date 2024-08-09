@@ -30,6 +30,9 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.13.4'
+
+    implementation 'org.modelmapper:modelmapper:3.1.1'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 

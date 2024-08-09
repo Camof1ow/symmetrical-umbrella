@@ -17,7 +17,7 @@ public class Activist {
     @Id
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private int id;
 
     @Column(name = "name_hanja")
     private String nameHanja;
