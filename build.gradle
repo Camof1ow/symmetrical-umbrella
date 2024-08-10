@@ -33,6 +33,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.13.4'
 
     implementation 'org.modelmapper:modelmapper:3.1.1'
+    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.8.0'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
@@ -42,7 +43,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.jsoup:jsoup:1.18.1'
 
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'mysql:mysql-connector-java:8.0.33'
 }
 
 dependencyManagement {

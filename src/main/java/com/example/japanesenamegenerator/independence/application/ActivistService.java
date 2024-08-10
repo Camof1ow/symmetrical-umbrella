@@ -1,12 +1,14 @@
-package com.example.japanesenamegenerator.independence.service;
+package com.example.japanesenamegenerator.independence.application;
 
+import com.example.japanesenamegenerator.independence.application.response.ActivistResponse;
 import com.example.japanesenamegenerator.independence.client.ActivistClient;
 import com.example.japanesenamegenerator.independence.domain.Activist;
-import com.example.japanesenamegenerator.independence.domain.response.ActivistResponse;
-import com.example.japanesenamegenerator.independence.domain.response.FamilyKeysAndPageCount;
+import com.example.japanesenamegenerator.independence.application.response.ActivistOpenApiResponse;
+import com.example.japanesenamegenerator.independence.application.response.FamilyKeysAndPageCount;
 import com.example.japanesenamegenerator.independence.repository.ActivistRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -31,7 +33,7 @@ public class ActivistService {
         "AL", "AM", "AN", "AO", "AP", "AQ", "AR", "AS", "AT", "AU"
     );
 
-    public List<ActivistResponse> fetchApiData() {
+    public List<ActivistOpenApiResponse> fetchApiData() {
         return movementFamilyKeys.stream()
             .map(this::getFamilyKeyAndPageCount)
             .filter(Objects::nonNull)
@@ -46,39 +48,39 @@ public class ActivistService {
             log.error("Failed to get. key: '{}'", key);
             return null;
         }
-        ActivistResponse activistResponse = parseXmlResponse(response);
-        if (Objects.isNull(activistResponse)) {
+        ActivistOpenApiResponse activistOpenApiResponse = parseXmlResponse(response);
+        if (Objects.isNull(activistOpenApiResponse)) {
             log.error("Failed to parse. key: '{}'", key);
             return null;
         }
-        return new FamilyKeysAndPageCount(key, activistResponse.getPageCount());
+        return new FamilyKeysAndPageCount(key, activistOpenApiResponse.getPageCount());
     }
 
-    private Stream<ActivistResponse> fetchAllPages(FamilyKeysAndPageCount keysAndPageCount) {
+    private Stream<ActivistOpenApiResponse> fetchAllPages(FamilyKeysAndPageCount keysAndPageCount) {
         return IntStream.rangeClosed(1, keysAndPageCount.getPageCount())
             .mapToObj(page -> fetchPage(keysAndPageCount.getFamilyKey(), page))
             .filter(Objects::nonNull);
     }
 
-    private ActivistResponse fetchPage(String key, int page) {
+    private ActivistOpenApiResponse fetchPage(String key, int page) {
         String response = activistClient.getApiResponse("4", key, page);
         if (Objects.isNull(response)) {
             log.error("Failed to get. key: '{}', page: '{}'", key, page);
             return null;
         }
-        ActivistResponse activistResponse = parseXmlResponse(response);
-        if (Objects.isNull(activistResponse)) {
+        ActivistOpenApiResponse activistOpenApiResponse = parseXmlResponse(response);
+        if (Objects.isNull(activistOpenApiResponse)) {
             log.error("Failed to parse. key: '{}', page: '{}'", key, page);
             return null;
         }
-        return activistResponse;
+        return activistOpenApiResponse;
     }
 
-    private ActivistResponse parseXmlResponse(String xmlString) {
+    private ActivistOpenApiResponse parseXmlResponse(String xmlString) {
         try {
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            ActivistResponse response = xmlMapper.readValue(xmlString, ActivistResponse.class);
+            ActivistOpenApiResponse response = xmlMapper.readValue(xmlString, ActivistOpenApiResponse.class);
             log.debug("Parsed response: {}", response);
             return response;
         } catch (Exception e) {
@@ -88,18 +90,49 @@ public class ActivistService {
         }
     }
 
-    public List<Activist> convert(List<ActivistResponse> responses) {
+    public List<Activist> convert(List<ActivistOpenApiResponse> responses) {
         return responses.stream()
-            .filter(x-> !ObjectUtils.isEmpty(x.getItems()))
+            .filter(x -> !ObjectUtils.isEmpty(x.getItems()))
             .flatMap(response -> response.getItems().stream())
             .map(this::convertToEntity)
             .toList();
     }
-    private Activist convertToEntity(ActivistResponse.DataItem dataItem) {
+
+    private Activist convertToEntity(ActivistOpenApiResponse.DataItem dataItem) {
         return modelMapper.map(dataItem, Activist.class);
     }
 
     public void saveAll(List<Activist> entities) {
         activistRepository.saveAll(entities);
     }
+
+    public ActivistResponse findSameOrSimilarName(String name) {
+        List<List<Activist>> searchResults = Stream.of(
+                activistRepository.findByNameContaining(name),
+                activistRepository.findBySimilarName(name),
+                activistRepository.findByFullTextSearch(name)
+            )
+            .filter(results -> !ObjectUtils.isEmpty(results))
+            .toList();
+
+        if (searchResults.isEmpty()) {
+            return null;
+        }
+
+        List<Activist> results = searchResults.getFirst();
+        log.info("[search] search name : '{}', response names: {}",
+            name, results.stream().map(Activist::getName).toList());
+
+        return proceedActivists(results);
+    }
+
+    private ActivistResponse proceedActivists(List<Activist> results) {
+        Activist first = results.getFirst();
+        return modelMapper.map(first, ActivistResponse.class);
+    }
+
+    public void deleteAll() {
+        activistRepository.deleteAll();
+    }
 }
+

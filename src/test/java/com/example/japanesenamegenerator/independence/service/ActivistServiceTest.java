@@ -3,7 +3,8 @@ package com.example.japanesenamegenerator.independence.service;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.example.japanesenamegenerator.independence.domain.response.ActivistResponse;
+import com.example.japanesenamegenerator.independence.application.ActivistService;
+import com.example.japanesenamegenerator.independence.application.response.ActivistOpenApiResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +21,10 @@ class ActivistServiceTest {
         try{
 
             // When
-            List<ActivistResponse> activistResponses = activistService.fetchApiData();
+            List<ActivistOpenApiResponse> activistOpenApiRespons = activistService.fetchApiData();
 
             // Then
-            assertNotNull(activistResponses);
+            assertNotNull(activistOpenApiRespons);
 
             // Add more specific assertions based on the expected structure of your ActivistResponse
             // For example:
@@ -32,7 +33,7 @@ class ActivistServiceTest {
             // assertEquals(expectedTotalCount, response.getTotalCount());
 
             // Print the response for manual inspection
-            System.out.println("Received response: " + activistResponses);
+            System.out.println("Received response: " + activistOpenApiRespons);
         }catch (Exception e){
             fail("Exception occurred: " + e.getMessage());
         }
