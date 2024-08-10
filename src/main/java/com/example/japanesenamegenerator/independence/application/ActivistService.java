@@ -8,7 +8,6 @@ import com.example.japanesenamegenerator.independence.application.response.Famil
 import com.example.japanesenamegenerator.independence.repository.ActivistRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -106,7 +105,7 @@ public class ActivistService {
         activistRepository.saveAll(entities);
     }
 
-    public ActivistResponse findSameOrSimilarName(String name) {
+    public List<ActivistResponse> findSameOrSimilarName(String name) {
         List<List<Activist>> searchResults = Stream.of(
                 activistRepository.findByNameContaining(name),
                 activistRepository.findBySimilarName(name),
@@ -126,9 +125,10 @@ public class ActivistService {
         return proceedActivists(results);
     }
 
-    private ActivistResponse proceedActivists(List<Activist> results) {
-        Activist first = results.getFirst();
-        return modelMapper.map(first, ActivistResponse.class);
+    private List<ActivistResponse> proceedActivists(List<Activist> results) {
+        return results.stream()
+            .map(activist -> modelMapper.map(activist, ActivistResponse.class))
+            .toList();
     }
 
     public void deleteAll() {

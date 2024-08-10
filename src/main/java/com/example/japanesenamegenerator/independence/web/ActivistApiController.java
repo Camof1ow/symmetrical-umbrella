@@ -40,7 +40,7 @@ public class ActivistApiController {
     }
 
     @GetMapping
-    public ActivistResponse get(@RequestParam String name){
+    public List<ActivistResponse> get(@RequestParam String name){
         return activistService.findSameOrSimilarName(name);
     }
 }

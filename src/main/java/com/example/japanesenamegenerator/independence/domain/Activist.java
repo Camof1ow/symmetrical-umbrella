@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator.independence.domain;
 
+import com.example.japanesenamegenerator.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +15,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "activists")
-public class Activist {
+public class Activist extends BaseEntity {
 
     @Id
     @Column(name = "id")

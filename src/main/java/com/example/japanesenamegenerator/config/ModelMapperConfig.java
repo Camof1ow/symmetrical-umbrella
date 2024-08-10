@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.common;
+package com.example.japanesenamegenerator.config;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
