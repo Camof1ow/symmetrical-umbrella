@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.independence.domain.response;
+package com.example.japanesenamegenerator.independence.application.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -11,7 +11,7 @@ import lombok.Setter;
 @JacksonXmlRootElement(localName = "root")
 @Getter
 @NoArgsConstructor
-public class ActivistResponse {
+public class ActivistOpenApiResponse {
 
     @JacksonXmlProperty(localName = "script")
     private String script;

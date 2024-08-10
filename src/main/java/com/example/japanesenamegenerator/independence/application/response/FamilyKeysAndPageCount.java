@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.independence.domain.response;
+package com.example.japanesenamegenerator.independence.application.response;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import lombok.Getter;
