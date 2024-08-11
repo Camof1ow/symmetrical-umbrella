@@ -20,9 +20,11 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          key_format: pem
           script: |
             docker pull ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
             docker stop my-app-container || true
             docker rm my-app-container || true
-            docker run -d --name my-app-container -p 8080:8080 ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
+            docker run -d --name my-app-container \
+              -p 8080:8080 \
+              -v /home/${{ secrets.EC2_USERNAME }}/app-config/application.yml:/app/config/application.yml \
+              ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
