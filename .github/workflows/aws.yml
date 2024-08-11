@@ -26,6 +26,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
       - name: Build with Gradle
         run: ./gradlew build -x test  # 테스트를 건너뛰도록 설정
 
