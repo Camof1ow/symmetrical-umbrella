@@ -12,7 +12,7 @@ RUN gradle build -x test --no-daemon
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=build /home/gradle/src/build/libs/*.jar app.jar
-EXPOSE 8080
+EXPOSE 8888
 
 # 외부 설정 파일을 위한 볼륨 지점 생성
 VOLUME /app/config
