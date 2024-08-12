@@ -48,11 +48,21 @@ jobs:
           tags: ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }},${{ env.DOCKER_HUB_REPOSITORY }}:latest
           
       - name: Clean up old Docker images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          docker run --rm \
-            -e DOCKER_HUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
-            -e DOCKER_HUB_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} \
-            centurylink/image-clean --repo ${{ env.DOCKER_HUB_REPOSITORY }} --keep 5
+          # 리포지토리의 모든 태그 가져오기
+          TAGS=$(curl -s -H "Authorization: Bearer $(echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin >/dev/null && docker auth token)" \
+            "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_REPOSITORY }}/tags/?page_size=10000" | jq -r '.results[].name')
+          
+          # 최신 5개 태그를 제외한 나머지 삭제
+          echo "$TAGS" | sort -r | tail -n +6 | while read TAG; do
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $(echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin >/dev/null && docker auth token)" \
+              "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_REPOSITORY }}/tags/$TAG/"
+            echo "Deleted tag: $TAG"
+          done
 
   dependency-submission:
     runs-on: ubuntu-latest
