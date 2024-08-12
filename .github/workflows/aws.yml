@@ -1,11 +1,9 @@
 name: Deploy to EC2
-
 on:
   workflow_run:
     workflows: ["Java CI with Gradle"]
     types:
       - completed
-
 env:
   DOCKER_HUB_REPOSITORY: yelloman/jap-your-name
 
@@ -21,10 +19,18 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # 최신 이미지 pull
             docker pull ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
+            
+            # 기존 컨테이너 중지 및 제거
             docker stop my-app-container || true
             docker rm my-app-container || true
+            
+            # 새 컨테이너 실행
             docker run -d --name my-app-container \
-              -p 8080:8080 \
+              -p 8888:8888 \
               -v /home/${{ secrets.EC2_USERNAME }}/app-config/application.yml:/app/config/application.yml \
               ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
+            
+            # 사용하지 않는 이미지 정리
+            docker image prune -af --filter "until=24h"
