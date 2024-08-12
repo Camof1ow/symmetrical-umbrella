@@ -52,15 +52,23 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          # Docker Hub API 토큰 획득
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+          
+          if [ -z "$TOKEN" ]; then
+            echo "Failed to obtain Docker Hub API token"
+            exit 1
+          fi
+          
           # 리포지토리의 모든 태그 가져오기
-          TAGS=$(curl -s -H "Authorization: Bearer $(echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin >/dev/null && docker auth token)" \
-            "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_REPOSITORY }}/tags/?page_size=10000" | jq -r '.results[].name')
+          TAGS=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
+            "https://hub.docker.com/v2/repositories/${DOCKER_HUB_REPOSITORY}/tags/?page_size=10000" | jq -r '.results[].name')
           
           # 최신 5개 태그를 제외한 나머지 삭제
           echo "$TAGS" | sort -r | tail -n +6 | while read TAG; do
             curl -s -X DELETE \
-              -H "Authorization: Bearer $(echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin >/dev/null && docker auth token)" \
-              "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_REPOSITORY }}/tags/$TAG/"
+              -H "Authorization: Bearer ${TOKEN}" \
+              "https://hub.docker.com/v2/repositories/${DOCKER_HUB_REPOSITORY}/tags/${TAG}/"
             echo "Deleted tag: $TAG"
           done
 
