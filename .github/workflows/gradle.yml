@@ -62,7 +62,7 @@ jobs:
           
           # 리포지토리의 모든 태그 가져오기
           TAGS=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
-            "https://hub.docker.com/v2/repositories/${DOCKER_HUB_REPOSITORY}/tags/?page_size=10000" | jq -r '.results[].name')
+            "https://hub.docker.com/v2/repositories/${DOCKER_HUB_REPOSITORY}/tags/?page_size=10000" | jq -r '.results[].name | select(. != "latest")')
           
           # 최신 5개 태그를 제외한 나머지 삭제
           echo "$TAGS" | sort -r | tail -n +6 | while read TAG; do
