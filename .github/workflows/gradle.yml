@@ -39,17 +39,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+      
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }},${{ env.DOCKER_HUB_REPOSITORY }}:latest
-
+          
       - name: Clean up old Docker images
         run: |
-          # 최신 5개 이미지를 제외한 모든 이미지 삭제
+          # Docker Hub에 로그인 상태 확인
+          docker info
+          
+          # centurylink/image-clean 이미지 pull 시도
+          docker pull centurylink/image-clean:latest
+          
+          # 이미지 pull 성공 시 실행
           docker run --rm \
             -e DOCKER_HUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
             -e DOCKER_HUB_PASSWORD=${{ secrets.DOCKERHUB_TOKEN }} \
