@@ -5,7 +5,7 @@ import com.example.japanesenamegenerator.nameGenerator.service.NameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -14,12 +14,12 @@ public class NameController {
 
     private final NameService nameService;
 
-    @GetMapping("api/name/{surName}-{firstName}-{gender}")
-    public ResponseEntity<LastNameResponse> generateName(@PathVariable("surName") String surName,
-                                                         @PathVariable("firstName") String firstName,
-                                                         @PathVariable String gender) {
+    @GetMapping("api/name")
+    public ResponseEntity<LastNameResponse> generateName(@RequestParam String surName,
+                                                         @RequestParam String firstName,
+                                                         @RequestParam String gender) {
 
-        return ResponseEntity.ok(nameService.generateName(surName, firstName, gender));
+        return ResponseEntity.ok(nameService.getNameInfo(surName, firstName, gender));
     }
 
 

@@ -9,100 +9,109 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
 
 @Service
 public class NameService {
 
+    private static final String NAME_CONVERTER_URL = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php";
+    private static final String LAST_NAME_URL_TEMPLATE = "https://japanese-names.info/last-names/search-result/freeword-%s/";
+    private static final String FIRST_NAME_URL_TEMPLATE = "https://japanese-names.info/first-names/search-result/%sfreeword-%s/";
 
-    public LastNameResponse generateName(String surName, String firstName, String gender) {
-        /*
-        todo: 일본에서 안쓰이는 한자 변경이 필요.
-         http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php
-         */
-        String japaneseSurName = "", surNamePronounce = "";
-        String firstNamePronounce = "", japaneseFirstName = "";
-        int households = 0;
+    public LastNameResponse getNameInfo(String surName, String firstName, String gender) {
+        String convertedName = nameConvert(String.format("%s_%s", surName, firstName));
+        String[] nameParts = convertedName.split("_");
+        surName = nameParts[0];
+        firstName = nameParts[1];
 
-        String converted = nameConvert(String.format("%s_%s", surName, firstName));
-        String[] split = converted.split("_");
-        surName = split[0];
-        firstName = split[1];
+        List<String> firstNameList = Arrays.asList(firstName.split(""));
+        List<String> firstNameUrls = createFirstNameUrls(firstNameList, gender);
 
-        List<String> firstNameList = Arrays.stream(firstName.split("")).toList();
-        List<String> firstNameUrls = new ArrayList<>();
-        String surNameUrl = String.format("https://japanese-names.info/last-names/search-result/freeword-%s/", surName);
+        List<Element> firstNames = fetchElementsFromUrls(firstNameUrls);
+        Element randomFirstName = getRandomElement(firstNames);
 
-        String genderParam = gender == null ? "" : String.format("gender-%s_", gender);
-        firstNameList.forEach(firstNameString ->
-                firstNameUrls.add(
-                        String.format(
-                                "https://japanese-names.info/first-names/search-result/%sfreeword-%s/",
-                                genderParam, firstNameString)
-                )
-        );
+        String japaneseFirstName = getElementText(randomFirstName, "strong");
+        String firstNamePronounce = getElementText(randomFirstName, "em");
 
-        List<Element> firstNames = new ArrayList<>();
-        firstNameUrls.forEach(
-                url -> {
-                    try {
-                        Document doc = Jsoup.connect(url).get();
-                        Elements names = doc.select(".name_summary");
-                        List<Element> stringList = names.stream().toList();
-                        firstNames.addAll(stringList);
+        String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
+        Element surNameElement = fetchElementFromUrl(surNameUrl);
 
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
-        Random random = new Random();
-        Element randomElement = firstNames.get(random.nextInt(firstNames.size()));
-        firstNamePronounce = randomElement.siblingElements().select("em").text();
-        japaneseFirstName = Objects.requireNonNull(randomElement.selectFirst("strong")).text();
-
-        try {
-            Document doc = Jsoup.connect(surNameUrl).get();
-            Element names = doc.selectFirst(".name_summary");
-            Element siblingElement = Objects.requireNonNull(names).siblingElements().first();
-
-            String householdsText = names.text();
-            String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
-            households = Integer.parseInt(extractedNumber);
-            japaneseSurName = names.selectFirst("strong").text();
-            surNamePronounce = siblingElement.select("em").text();
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        int households = parseHouseholds(surNameElement);
+        String japaneseSurName = getElementText(surNameElement, "strong");
+        String surNamePronounce = getElementText(surNameElement.siblingElements().first(), "em");
 
         return new LastNameResponse(japaneseSurName, surNamePronounce, japaneseFirstName, firstNamePronounce, households);
     }
 
-    private String nameConvert(String koreanName) {
+    private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {
+        String genderParam = (gender == null) ? "" : String.format("gender-%s_", gender);
+        List<String> urls = new ArrayList<>();
+        firstNameList.forEach(
+                firstName -> urls.add(String.format(FIRST_NAME_URL_TEMPLATE, genderParam, firstName))
+        );
+        return urls;
+    }
 
-        String url = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php"; // 요청할 URL
-        String param1Key = "contents";
-        String param1Value = koreanName;
-        String param2Key = "firstinput";
-        String param2Value = "OK";
+    private List<Element> fetchElementsFromUrls(List<String> urls) {
+        List<Element> elements = new ArrayList<>();
+        urls.forEach(
+                url -> {
+                    try {
+                        Document document = Jsoup.connect(url).get();
+                        Elements nameElements = document.select(".name_summary");
+                        elements.addAll(nameElements);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Error fetching data from URL: " + url, e);
+                    }
+                });
 
+        return elements;
+    }
+
+    private Element getRandomElement(List<Element> elements) {
+        if (elements.isEmpty()) throw new IllegalStateException("No elements found");
+        Random random = new Random();
+        return elements.get(random.nextInt(elements.size()));
+    }
+
+    private Element fetchElementFromUrl(String url) {
         try {
-            Connection.Response response = Jsoup.connect(url)
+            Document document = Jsoup.connect(url).get();
+            return document.selectFirst(".name_summary");
+        } catch (IOException e) {
+            throw new RuntimeException("Error fetching data from URL: " + url, e);
+        }
+    }
+
+    private int parseHouseholds(Element element) {
+        if (element == null) throw new IllegalStateException("No data found for households");
+        String householdsText = element.text();
+        String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
+        return Integer.parseInt(extractedNumber);
+    }
+
+    private String getElementText(Element element, String tag) {
+        return Objects.requireNonNull(element.selectFirst(tag)).text();
+    }
+
+    private String nameConvert(String koreanName) {
+        try {
+            Connection.Response response = Jsoup.connect(NAME_CONVERTER_URL)
                     .method(Connection.Method.POST)
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .data(param1Key, param1Value)
-                    .data(param2Key, param2Value)
+                    .data("contents", koreanName)
+                    .data("firstinput", "OK")
                     .execute();
 
             Document document = response.parse();
             return document.selectFirst(".finalresult").text();
-
         } catch (IOException e) {
             e.printStackTrace();
-            throw new IllegalArgumentException("이름 변환 중 에러가 발생하였습니다.");
+            throw new IllegalArgumentException("Error converting name", e);
         }
     }
-
 }
