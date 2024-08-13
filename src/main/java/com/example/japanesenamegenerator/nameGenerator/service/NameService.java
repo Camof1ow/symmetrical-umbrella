@@ -28,6 +28,9 @@ public class NameService {
         surName = nameParts[0];
         firstName = nameParts[1];
 
+        if(gender.equals("male")) gender = "boy";
+        else gender = "girl";
+
         List<String> firstNameList = Arrays.asList(firstName.split(""));
         List<String> firstNameUrls = createFirstNameUrls(firstNameList, gender);
 

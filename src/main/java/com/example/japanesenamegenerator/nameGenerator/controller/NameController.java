@@ -15,13 +15,11 @@ public class NameController {
     private final NameService nameService;
 
     @GetMapping("api/name")
-    public ResponseEntity<LastNameResponse> generateName(@RequestParam String surName,
-                                                         @RequestParam String firstName,
+    public ResponseEntity<LastNameResponse> generateName(@RequestParam String firstName,
+                                                         @RequestParam String lastName,
                                                          @RequestParam String gender) {
 
-        return ResponseEntity.ok(nameService.getNameInfo(surName, firstName, gender));
+        return ResponseEntity.ok(nameService.getNameInfo(firstName, lastName, gender));
     }
-
-
 
 }
