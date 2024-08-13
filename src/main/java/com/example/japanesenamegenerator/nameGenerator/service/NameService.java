@@ -1,6 +1,6 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
-import com.example.japanesenamegenerator.nameGenerator.responses.LastNameResponse;
+import com.example.japanesenamegenerator.nameGenerator.responses.NameResponse;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,15 +22,16 @@ public class NameService {
     private static final String LAST_NAME_URL_TEMPLATE = "https://japanese-names.info/last-names/search-result/freeword-%s/";
     private static final String FIRST_NAME_URL_TEMPLATE = "https://japanese-names.info/first-names/search-result/%sfreeword-%s/";
 
-    public LastNameResponse getNameInfo(String surName, String firstName, String gender) {
+    public NameResponse getNameInfo(String surName, String firstName, String gender) {
         String convertedName = nameConvert(String.format("%s_%s", surName, firstName));
         String[] nameParts = convertedName.split("_");
         surName = nameParts[0];
         firstName = nameParts[1];
 
-        if(gender.equals("male")) gender = "boy";
+        if (gender.equals("male")) gender = "boy";
         else gender = "girl";
 
+        //이름
         List<String> firstNameList = Arrays.asList(firstName.split(""));
         List<String> firstNameUrls = createFirstNameUrls(firstNameList, gender);
 
@@ -38,16 +39,23 @@ public class NameService {
         Element randomFirstName = getRandomElement(firstNames);
 
         String japaneseFirstName = getElementText(randomFirstName, "strong");
-        String firstNamePronounce = getElementText(randomFirstName, "em");
+        String fnPronouceChunk = randomFirstName.getElementsByAttributeStarting("href").getFirst().toString()
+                .replace("<a href=\"https://japanese-names.info/first-name/", "");
+
 
         String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
-        Element surNameElement = fetchElementFromUrl(surNameUrl);
+        Element lastNameElement = fetchElementFromUrl(surNameUrl);
 
-        int households = parseHouseholds(surNameElement);
-        String japaneseSurName = getElementText(surNameElement, "strong");
-        String surNamePronounce = getElementText(surNameElement.siblingElements().first(), "em");
+        int households = parseHouseholds(lastNameElement);
+        String japaneseLastName = getElementText(lastNameElement, "strong");
+        String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
+                .replace("<a href=\"/last-name/", "");
 
-        return new LastNameResponse(japaneseSurName, surNamePronounce, japaneseFirstName, firstNamePronounce, households);
+
+        String firstNamePronouce = fnPronouceChunk.substring(0,fnPronouceChunk.indexOf("/"));
+        String lastNamePronounce = lnPronouceChunk.substring(0,fnPronouceChunk.indexOf("/"));
+
+        return new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce, households);
     }
 
     private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {

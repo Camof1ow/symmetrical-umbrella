@@ -3,7 +3,7 @@ package com.example.japanesenamegenerator.nameGenerator.responses;
 import lombok.Getter;
 
 @Getter
-public class LastNameResponse {
+public class NameResponse {
 
     private String surName;
     private String pronounceSurName;
@@ -11,7 +11,7 @@ public class LastNameResponse {
     private String pronounceFirstName;
     private int households;
 
-    public LastNameResponse(String surName, String pronounceSurName, String firstName, String pronounceFirstName, int households) {
+    public NameResponse(String surName, String pronounceSurName, String firstName, String pronounceFirstName, int households) {
         this.surName = surName;
         this.pronounceSurName = pronounceSurName;
         this.firstName = firstName;
@@ -19,5 +19,5 @@ public class LastNameResponse {
         this.households = households;
     }
 
-    public LastNameResponse(){}
+    public NameResponse(){}
 }
