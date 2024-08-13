@@ -20,7 +20,7 @@ public class NameController {
                                          @RequestParam String lastName,
                                          @RequestParam String gender) {
 
-        return nameService.getNameInfo(firstName, lastName, gender);
+        return nameService.getNameInfo(lastName,firstName, gender);
     }
 
 }
