@@ -50,10 +50,10 @@ public class NameService {
         String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
                 .replace("<a href=\"/last-name/", "");
 
-        String firstNamePronouce = fnPronouceChunk.substring(0,fnPronouceChunk.indexOf("/"));
-        String lastNamePronounce = lnPronouceChunk.substring(0,lnPronouceChunk.indexOf("/"));
+        String firstNamePronouce = fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/"));
+        String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
 
-        return new NameResponse(japaneseFirstName, firstNamePronouce,japaneseLastName, lastNamePronounce, households);
+        return new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce, households);
     }
 
     private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {
