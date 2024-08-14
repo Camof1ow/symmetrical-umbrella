@@ -31,7 +31,7 @@ jobs:
             docker run -d --name my-app-container \
               -p 8888:8888 \
               -v /home/${{ secrets.EC2_USERNAME }}/app-config/application.yml:/app/config/application.yml \
-              -v /home/${{ secrets.EC2_USERNAME }}/static:/app/static \
+              -v /home/jap-super-jiman/static:/app/src/main/resources/static
               ${{ env.DOCKER_HUB_REPOSITORY }}:latest
             
             # 사용하지 않는 이미지 정리
