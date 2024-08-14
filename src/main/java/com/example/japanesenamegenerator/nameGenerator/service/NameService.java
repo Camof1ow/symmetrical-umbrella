@@ -53,7 +53,11 @@ public class NameService {
         String firstNamePronouce = fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/"));
         String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
 
-        return new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce, households);
+        return new NameResponse(japaneseLastName,
+                getOnlyLetters(lastNamePronounce),
+                japaneseFirstName,
+                getOnlyLetters(firstNamePronouce),
+                households);
     }
 
     private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {
@@ -97,7 +101,7 @@ public class NameService {
     }
 
     private int parseHouseholds(Element element) {
-        if (element == null) throw new IllegalStateException("No data found for households");
+        if (element == null) return 9999;
         String householdsText = element.text();
         String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
         return Integer.parseInt(extractedNumber);
@@ -122,5 +126,9 @@ public class NameService {
             e.printStackTrace();
             throw new IllegalArgumentException("Error converting name", e);
         }
+    }
+
+    private String getOnlyLetters(String input){
+        return input.replaceAll("[^a-zA-Z]", "");
     }
 }
