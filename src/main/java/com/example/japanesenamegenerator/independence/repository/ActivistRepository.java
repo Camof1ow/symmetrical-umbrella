@@ -41,5 +41,5 @@ public interface ActivistRepository extends JpaRepository<Activist, Long> {
         "LIMIT 10", nativeQuery = true)
     List<Activist> findByFullTextSearch(@Param("searchTerm") String searchTerm);
 
-    Optional<Activist> findByNameHanja(String nameHanja);
+    Optional<List<Activist>> findByNameHanja(String nameHanja);
 }
