@@ -6,7 +6,6 @@ on:
       - completed
 env:
   DOCKER_HUB_REPOSITORY: yelloman/jap-your-name
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,8 +18,10 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e  # 에러 발생 시 스크립트 실행 중단
+            
             # 최신 이미지 pull
-            docker pull ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
+            docker pull ${{ env.DOCKER_HUB_REPOSITORY }}:latest
             
             # 기존 컨테이너 중지 및 제거
             docker stop my-app-container || true
@@ -30,7 +31,7 @@ jobs:
             docker run -d --name my-app-container \
               -p 8888:8888 \
               -v /home/${{ secrets.EC2_USERNAME }}/app-config/application.yml:/app/config/application.yml \
-              ${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}
+              ${{ env.DOCKER_HUB_REPOSITORY }}:latest
             
             # 사용하지 않는 이미지 정리
             docker image prune -af --filter "until=24h"
