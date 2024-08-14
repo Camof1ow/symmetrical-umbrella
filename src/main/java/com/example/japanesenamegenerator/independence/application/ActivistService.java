@@ -9,6 +9,7 @@ import com.example.japanesenamegenerator.independence.repository.ActivistReposit
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -115,7 +116,7 @@ public class ActivistService {
             .toList();
 
         if (searchResults.isEmpty()) {
-            return null;
+            throw new NoSuchElementException("No activists found with name: " + name);
         }
 
         List<Activist> results = searchResults.getFirst();

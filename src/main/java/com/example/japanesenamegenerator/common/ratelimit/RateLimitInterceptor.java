@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.common.interceptor;
+package com.example.japanesenamegenerator.common.ratelimit;
 
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -9,15 +9,17 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private final Bucket bucket;
+    private final IpBasedRateLimiter rateLimiter;
 
-    public RateLimitInterceptor(Bucket bucket) {
-        this.bucket = bucket;
+    public RateLimitInterceptor(IpBasedRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request,
         HttpServletResponse response, Object handler) throws Exception {
+        String ip = getClientIp(request);
+        Bucket bucket = rateLimiter.resolveBucket(ip);
 
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
 
@@ -33,6 +35,13 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             "You have exhausted your API Request Quota"
         );
         return false;
+    }
 
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 }

@@ -11,6 +11,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ThrottlingConfig {
 
+    public Bucket createNewBucket() {
+        return Bucket.builder()
+            .addLimit(
+                Bandwidth.classic(getCapacity(),
+                    Refill.intervally(getRefillTokens(), Duration.ofMinutes(1)))
+            ).build();
+    }
+
     @Bean
     public Bucket dynamicBucket() {
         return Bucket.builder()
@@ -28,7 +36,7 @@ public class ThrottlingConfig {
         return isPeakHour() ? 50 : 100;
     }
 
-    private boolean isPeakHour() {
+    public boolean isPeakHour() {
         int hour = LocalTime.now().getHour();
         return hour >= 9 && hour < 17;  // 9AM to 5PM를 피크 시간으로 가정
     }
