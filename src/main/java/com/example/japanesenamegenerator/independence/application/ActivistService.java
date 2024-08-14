@@ -9,6 +9,7 @@ import com.example.japanesenamegenerator.independence.domain.Activist;
 import com.example.japanesenamegenerator.independence.repository.ActivistRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import jakarta.transaction.Transactional;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -154,14 +155,14 @@ public class ActivistService {
         activistRepository.deleteAll();
     }
 
-    public void updateImages() {
+    @Transactional
+    public boolean updateImages() {
         try {
             Path path = Files.createDirectories(Paths.get(IMAGE_DIRECTORY));
             log.info("Directory created: {}", path);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
 
         List<ActivistImageUpdateRequest> requests = new ArrayList<>();
         Pattern pattern = Pattern.compile("\\((.*?)\\)");
@@ -196,13 +197,15 @@ public class ActivistService {
 
         try{
             for (ActivistImageUpdateRequest request : requests) {
-                log.info("Processing request: '{}' :: '{}'", request.getName(), request.getImageUrl());
                 String imagePath = downloadImage(request.getImageUrl());
+                log.info("Processing request: '{}' :: '{}'", request.getName(), imagePath);
                 updateDatabase(request.getName(), imagePath);
             }
         } catch (Exception e){
             log.error("Error processing request: {}", e.getMessage());
         }
+
+        return true;
     }
     private String downloadImage(String imageUrl) {
         String fileName = UUID.randomUUID() + ".jpg";
@@ -228,8 +231,13 @@ public class ActivistService {
         if (imagePath != null) {
             activistRepository.findByNameHanja(chineseName)
                 .ifPresent(activist -> {
-                    activist.setImagePath(imagePath);
-                    activistRepository.save(activist);
+                    //유니크한 값이 아니라서 여러명이 나올 수 있음. 누군지 모르지 일단 업데이트 하지 않음
+                    if(activist.size() > 1){
+                        return;
+                    }
+                    Activist first = activist.getFirst();
+                    first.setImagePath(imagePath);
+                    activistRepository.save(first);
                 });
         }
     }

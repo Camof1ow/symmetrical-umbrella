@@ -40,8 +40,8 @@ public class ActivistApiController {
     }
 
     @PostMapping("/images")
-    public void updateImages(){
-        activistService.updateImages();
+    public boolean updateImages(){
+        return activistService.updateImages();
     }
 
     @GetMapping
