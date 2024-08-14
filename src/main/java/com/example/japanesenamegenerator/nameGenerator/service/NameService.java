@@ -1,7 +1,9 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
-import com.example.japanesenamegenerator.nameGenerator.model.HanjaSurName;
+import com.example.japanesenamegenerator.nameGenerator.model.HanjaName;
+import com.example.japanesenamegenerator.nameGenerator.repository.HanjaNameRepository;
 import com.example.japanesenamegenerator.nameGenerator.responses.NameResponse;
+import lombok.RequiredArgsConstructor;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,16 +23,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.opencsv.CSVReader;
 
 @Service
+@RequiredArgsConstructor
 public class NameService {
 
     private static final String NAME_CONVERTER_URL = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php";
     private static final String LAST_NAME_URL_TEMPLATE = "https://japanese-names.info/last-names/search-result/freeword-%s/";
     private static final String FIRST_NAME_URL_TEMPLATE = "https://japanese-names.info/first-names/search-result/%sfreeword-%s/";
     private final String csvFilePath = "src/main/resources/surNameHanja.csv";
+    private final HanjaNameRepository hanjaNameRepository;
 
     public NameResponse getNameInfo(String surName, String firstName, String gender) {
 
-        List<HanjaSurName> hanjaSurnameList = findKanjiDataByJapaneseNameHanja(surName);
+        List<HanjaName> hanjaSurnameList = hanjaNameRepository.findByKoreanHanja(surName);
 
         String convertedName = nameConvert(String.format("%s_%s", surName, firstName));
         String[] nameParts = convertedName.split("_");
@@ -74,12 +78,12 @@ public class NameService {
             int bound = hanjaSurnameList.size();
             Random rand = new Random();
             int i = rand.nextInt(bound);
-            HanjaSurName hanjaSurName = hanjaSurnameList.get(i);
+            HanjaName hanjaName = hanjaSurnameList.get(i);
             String eg ="";
-            if(!hanjaSurName.getExample().isEmpty()) eg = hanjaSurName.getExample();
+            if(!hanjaName.getExample().isEmpty()) eg = hanjaName.getExample();
 
-            return new NameResponse(hanjaSurName.getJapaneseNameHanja(),
-                    getOnlyLetters(hanjaSurName.getPronounce()),
+            return new NameResponse(hanjaName.getJapaneseHanja(),
+                    getOnlyLetters(hanjaName.getPronounce()),
                     japaneseFirstName,
                     getOnlyLetters(firstNamePronouce),
                     9999, eg);
@@ -167,33 +171,5 @@ public class NameService {
         return input.replaceAll("[^a-zA-Z]", "");
     }
 
-
-    public List<HanjaSurName> readKanjiData() {
-        List<HanjaSurName> kanjiDataList = new ArrayList<>();
-
-        try (CSVReader reader = new CSVReader(new FileReader(csvFilePath))) {
-            List<String[]> rows = reader.readAll();
-            for (String[] row : rows) {
-                HanjaSurName kanjiData = new HanjaSurName();
-                kanjiData.setKoreanHanja(row[0]);
-                kanjiData.setPronounce(row[1]);
-                kanjiData.setJapaneseNameHanja(row[2]);
-                kanjiData.setExample(row[3]);
-                kanjiDataList.add(kanjiData);
-            }
-            return kanjiDataList;
-
-        }catch (Exception e){
-            return kanjiDataList;
-        }
-    }
-
-    public List<HanjaSurName> findKanjiDataByJapaneseNameHanja(String nameHanja){
-        List<HanjaSurName> kanjiDataList = readKanjiData();
-        return kanjiDataList.stream()
-                .filter(kanjiData -> kanjiData.getKoreanHanja().equals(nameHanja))
-                .toList();
-
-    }
 
 }
