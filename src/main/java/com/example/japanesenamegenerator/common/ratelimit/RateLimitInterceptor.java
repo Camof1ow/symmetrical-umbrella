@@ -1,7 +1,5 @@
 package com.example.japanesenamegenerator.common.ratelimit;
 
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -18,18 +16,13 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request,
         HttpServletResponse response, Object handler) throws Exception {
+
         String ip = getClientIp(request);
-        Bucket bucket = rateLimiter.resolveBucket(ip);
 
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
-
-        if (probe.isConsumed()) {
-            response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
+        if (rateLimiter.tryConsume(ip)) {
             return true;
         }
 
-        long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
-        response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
         response.sendError(
             HttpStatus.TOO_MANY_REQUESTS.value(),
             "You have exhausted your API Request Quota"
@@ -39,7 +32,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
         return ip;

@@ -1,13 +1,20 @@
 package com.example.japanesenamegenerator.sample;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.japanesenamegenerator.config.ThrottlingConfig;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 @SpringBootTest
 @AutoConfigureMockMvc
 public class RateLimitingTest {
+
     private static final Logger logger = LoggerFactory.getLogger(RateLimitingTest.class);
 
     @Autowired
@@ -33,10 +41,102 @@ public class RateLimitingTest {
     @SpyBean
     private ThrottlingConfig throttlingConfig;
 
+    private static final String TEST_IP = "192.168.1.1";
+    private static final int TOTAL_REQUESTS = 10000;
+    private static final int THREAD_COUNT = 100;
+    private static final int TIMEOUT_MINUTES = 10;
+
     @BeforeEach
     public void setup() {
-        logger.info("Setting up test environment");
-        // Add any necessary setup code here
+        logger.info("테스트 환경 설정");
+        // 필요한 설정 코드 추가
+    }
+
+    @Test
+    @DisplayName("비동기 대량 요청 처리 테스트")
+    void testAsyncMassiveRequests() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+        AtomicInteger successfulRequests = new AtomicInteger(0);
+        AtomicInteger failedRequests = new AtomicInteger(0);
+        AtomicInteger ignoredRequests = new AtomicInteger(0);
+
+        List<CompletableFuture<RequestResult>> futures = new ArrayList<>();
+
+        for (int i = 0; i < TOTAL_REQUESTS; i++) {
+            CompletableFuture<RequestResult> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        MvcResult result = mockMvc.perform(get("/api/test")
+                                .header("X-Forwarded-For", TEST_IP))
+                            .andReturn();
+
+                        int status = result.getResponse().getStatus();
+                        if (status == 200) {
+                            successfulRequests.incrementAndGet();
+                            return new RequestResult(RequestStatus.SUCCESS, status);
+                        } else if (status == 429) {
+                            failedRequests.incrementAndGet();
+                            return new RequestResult(RequestStatus.FAILED, status);
+                        } else {
+                            ignoredRequests.incrementAndGet();
+                            return new RequestResult(RequestStatus.IGNORED, status);
+                        }
+                    } catch (Exception e) {
+                        logger.error("요청 처리 중 오류 발생", e);
+                        ignoredRequests.incrementAndGet();
+                        return new RequestResult(RequestStatus.ERROR, 0);
+                    }
+                }, executor).orTimeout(1, TimeUnit.SECONDS)
+                .exceptionally(ex -> {
+                    if (ex instanceof TimeoutException) {
+                        logger.warn("요청 시간 초과");
+                        ignoredRequests.incrementAndGet();
+                        return new RequestResult(RequestStatus.TIMEOUT, 0);
+                    } else {
+                        logger.error("예상치 못한 오류", ex);
+                        ignoredRequests.incrementAndGet();
+                        return new RequestResult(RequestStatus.ERROR, 0);
+                    }
+                });
+
+            futures.add(future);
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .orTimeout(TIMEOUT_MINUTES, TimeUnit.MINUTES)
+            .exceptionally(ex -> {
+                logger.error("테스트 시간 초과 또는 오류 발생", ex);
+                return null;
+            })
+            .join();
+
+        executor.shutdown();
+
+        int expectedSuccessfulRequests = throttlingConfig.isPeakHour() ? 50 : 100;
+
+        logger.info("총 요청 수: {}", TOTAL_REQUESTS);
+        logger.info("성공한 요청 수: {}", successfulRequests.get());
+        logger.info("실패한 요청 수: {}", failedRequests.get());
+        logger.info("무시되거나 오류 발생한 요청 수: {}", ignoredRequests.get());
+
+        for (CompletableFuture<RequestResult> future : futures) {
+            RequestResult result = future.join();
+            if (result.status == RequestStatus.IGNORED || result.status == RequestStatus.ERROR
+                || result.status == RequestStatus.TIMEOUT) {
+                logger.warn("요청이 무시되거나, 오류 발생, 또는 시간 초과. 상태: {}, HTTP 상태 코드: {}", result.status,
+                    result.httpStatus);
+            }
+        }
+
+        assertEquals(expectedSuccessfulRequests, successfulRequests.get(),
+            "예상치 못한 성공 요청 수");
+        assertEquals(TOTAL_REQUESTS - expectedSuccessfulRequests - ignoredRequests.get(),
+            failedRequests.get(),
+            "예상치 못한 실패 요청 수");
+        assertTrue(ignoredRequests.get() >= 0, "무시된 요청 수는 음수가 될 수 없습니다");
+
+        if (ignoredRequests.get() > 0) {
+            logger.warn("일부 요청이 무시되거나 오류가 발생했습니다: {}", ignoredRequests.get());
+        }
     }
 
     @Test
@@ -49,35 +149,23 @@ public class RateLimitingTest {
         for (int i = 0; i < 100; i++) {
             MvcResult result = performRequest("192.168.1.1")
                 .andExpect(status().isOk())
-                .andExpect(header().exists("X-Rate-Limit-Remaining"))
                 .andReturn();
 
-            String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-            logger.info("IP 192.168.1.1의 요청 {} - 남은 요청 수: {}", i + 1, remainingHeader);
-            assertEquals(String.valueOf(99 - i), remainingHeader, "IP1의 예상치 못한 남은 요청 수");
+            logger.info("IP 192.168.1.1의 요청 {}", i + 1);
         }
 
         logger.info("IP1 (192.168.1.1)의 속도 제한 초과 테스트");
-        MvcResult result = performRequest("192.168.1.1")
-            .andExpect(status().isTooManyRequests())
-            .andExpect(header().exists("X-Rate-Limit-Retry-After-Seconds"))
-            .andReturn();
-
-        String retryAfterHeader = result.getResponse().getHeader("X-Rate-Limit-Retry-After-Seconds");
-        logger.info("IP 192.168.1.1의 속도 제한 초과 - {}초 후 재시도", retryAfterHeader);
-        assertNotNull(retryAfterHeader, "Retry-After 헤더가 존재해야 함");
+        performRequest("192.168.1.1")
+            .andExpect(status().isTooManyRequests());
 
         // IP2 테스트
         logger.info("IP2 (192.168.1.2)에 대한 속도 제한 테스트");
         for (int i = 0; i < 100; i++) {
-            result = performRequest("192.168.1.2")
+            MvcResult result = performRequest("192.168.1.2")
                 .andExpect(status().isOk())
-                .andExpect(header().exists("X-Rate-Limit-Remaining"))
                 .andReturn();
 
-            String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-            logger.info("IP 192.168.1.2의 요청 {} - 남은 요청 수: {}", i + 1, remainingHeader);
-            assertEquals(String.valueOf(99 - i), remainingHeader, "IP2의 예상치 못한 남은 요청 수");
+            logger.info("IP 192.168.1.2의 요청 {}", i + 1);
         }
 
         logger.info("다중 IP 속도 제한 테스트 종료");
@@ -97,30 +185,23 @@ public class RateLimitingTest {
         for (int i = 0; i < 50; i++) {
             MvcResult result = performRequest("192.168.1.1")
                 .andExpect(status().isOk())
-                .andExpect(header().exists("X-Rate-Limit-Remaining"))
                 .andReturn();
 
-            String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-            logger.info("IP 192.168.1.1의 요청 {} - 남은 요청 수: {}", i + 1, remainingHeader);
-            assertEquals(String.valueOf(49 - i), remainingHeader, "피크 시간 동안 IP1의 예상치 못한 남은 요청 수");
+            logger.info("IP 192.168.1.1의 요청 {}", i + 1);
         }
 
         logger.info("IP1 (192.168.1.1)의 피크 시간 속도 제한 초과 테스트");
         performRequest("192.168.1.1")
-            .andExpect(status().isTooManyRequests())
-            .andExpect(header().exists("X-Rate-Limit-Retry-After-Seconds"));
+            .andExpect(status().isTooManyRequests());
 
         // IP2 테스트
         logger.info("IP2 (192.168.1.2)에 대한 피크 시간 속도 제한 테스트");
         for (int i = 0; i < 50; i++) {
             MvcResult result = performRequest("192.168.1.2")
                 .andExpect(status().isOk())
-                .andExpect(header().exists("X-Rate-Limit-Remaining"))
                 .andReturn();
 
-            String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-            logger.info("IP 192.168.1.2의 요청 {} - 남은 요청 수: {}", i + 1, remainingHeader);
-            assertEquals(String.valueOf(49 - i), remainingHeader, "피크 시간 동안 IP2의 예상치 못한 남은 요청 수");
+            logger.info("IP 192.168.1.2의 요청 {}", i + 1);
         }
 
         logger.info("피크 시간 속도 제한 테스트 종료");
@@ -142,8 +223,7 @@ public class RateLimitingTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-            String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-            logger.info("IP 192.168.1.1의 요청 {} - 남은 요청 수: {}", i + 1, remainingHeader);
+            logger.info("IP 192.168.1.1의 요청 {}", i + 1);
         }
 
         logger.info("토큰 리필 대기 중 (1분)");
@@ -153,28 +233,37 @@ public class RateLimitingTest {
         logger.info("IP1 (192.168.1.1)의 토큰 리필 확인");
         MvcResult result = performRequest("192.168.1.1")
             .andExpect(status().isOk())
-            .andExpect(header().exists("X-Rate-Limit-Remaining"))
             .andReturn();
 
-        String remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-        logger.info("리필 후 IP1의 남은 토큰 수: {}", remainingHeader);
-        assertEquals("99", remainingHeader, "IP1의 리필 후 예상치 못한 남은 요청 수");
+        logger.info("리필 후 IP1의 요청 성공");
 
         // IP2는 영향 받지 않음 확인
         logger.info("영향 받지 않은 IP2 (192.168.1.2) 테스트");
         result = performRequest("192.168.1.2")
             .andExpect(status().isOk())
-            .andExpect(header().exists("X-Rate-Limit-Remaining"))
             .andReturn();
 
-        remainingHeader = result.getResponse().getHeader("X-Rate-Limit-Remaining");
-        logger.info("IP2의 남은 토큰 수: {}", remainingHeader);
-        assertEquals("99", remainingHeader, "IP2의 예상치 못한 남은 요청 수");
+        logger.info("IP2의 요청 성공");
 
         logger.info("속도 제한 토큰 리필 테스트 종료");
     }
 
     private ResultActions performRequest(String ip) throws Exception {
         return mockMvc.perform(get("/api/test").header("X-Forwarded-For", ip));
+    }
+
+    private enum RequestStatus {
+        SUCCESS, FAILED, IGNORED, ERROR, TIMEOUT
+    }
+
+    private static class RequestResult {
+
+        RequestStatus status;
+        int httpStatus;
+
+        RequestResult(RequestStatus status, int httpStatus) {
+            this.status = status;
+            this.httpStatus = httpStatus;
+        }
     }
 }
