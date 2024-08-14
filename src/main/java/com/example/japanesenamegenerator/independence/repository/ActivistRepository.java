@@ -32,7 +32,7 @@ public interface ActivistRepository extends JpaRepository<Activist, Long> {
         nativeQuery = true)
     List<Activist> findBySimilarName(@Param("name") String name);
 
-    List<Activist> findByNameContaining(String name);
+    List<Activist> findTop10ByNameContaining(String name);
 
     @Query(value = "SELECT *, MATCH(name, content) AGAINST(:searchTerm IN BOOLEAN MODE) AS relevance " +
         "FROM activists " +
