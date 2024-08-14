@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
+import com.example.japanesenamegenerator.nameGenerator.model.HanjaSurName;
 import com.example.japanesenamegenerator.nameGenerator.responses.NameResponse;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -8,12 +9,16 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.opencsv.CSVReader;
 
 @Service
 public class NameService {
@@ -21,8 +26,12 @@ public class NameService {
     private static final String NAME_CONVERTER_URL = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php";
     private static final String LAST_NAME_URL_TEMPLATE = "https://japanese-names.info/last-names/search-result/freeword-%s/";
     private static final String FIRST_NAME_URL_TEMPLATE = "https://japanese-names.info/first-names/search-result/%sfreeword-%s/";
+    private final String csvFilePath = "src/main/resources/surNameHanja.csv";
 
     public NameResponse getNameInfo(String surName, String firstName, String gender) {
+
+        List<HanjaSurName> hanjaSurnameList = findKanjiDataByJapaneseNameHanja(surName);
+
         String convertedName = nameConvert(String.format("%s_%s", surName, firstName));
         String[] nameParts = convertedName.split("_");
         surName = nameParts[0];
@@ -41,23 +50,43 @@ public class NameService {
         String japaneseFirstName = getElementText(randomFirstName, "strong");
         String fnPronouceChunk = randomFirstName.getElementsByAttributeStarting("href").getFirst().toString()
                 .replace("<a href=\"https://japanese-names.info/first-name/", "");
-
-        String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
-        Element lastNameElement = fetchElementFromUrl(surNameUrl);
-
-        int households = parseHouseholds(lastNameElement);
-        String japaneseLastName = getElementText(lastNameElement, "strong");
-        String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
-                .replace("<a href=\"/last-name/", "");
-
         String firstNamePronouce = fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/"));
-        String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
 
-        return new NameResponse(japaneseLastName,
-                getOnlyLetters(lastNamePronounce),
-                japaneseFirstName,
-                getOnlyLetters(firstNamePronouce),
-                households);
+        if(hanjaSurnameList.isEmpty()){
+            String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
+            Element lastNameElement = fetchElementFromUrl(surNameUrl);
+
+            int households = parseHouseholds(lastNameElement);
+            String japaneseLastName = getElementText(lastNameElement, "strong");
+            String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
+                    .replace("<a href=\"/last-name/", "");
+
+            String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
+
+            return new NameResponse(japaneseLastName,
+                    getOnlyLetters(lastNamePronounce),
+                    japaneseFirstName,
+                    getOnlyLetters(firstNamePronouce),
+                    households,
+                    null);
+
+        }else {
+            int bound = hanjaSurnameList.size();
+            Random rand = new Random();
+            int i = rand.nextInt(bound);
+            HanjaSurName hanjaSurName = hanjaSurnameList.get(i);
+            String eg ="";
+            if(!hanjaSurName.getExample().isEmpty()) eg = hanjaSurName.getExample();
+
+            return new NameResponse(hanjaSurName.getJapaneseNameHanja(),
+                    getOnlyLetters(hanjaSurName.getPronounce()),
+                    japaneseFirstName,
+                    getOnlyLetters(firstNamePronouce),
+                    9999, eg);
+        }
+
+
+
     }
 
     private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {
@@ -71,6 +100,8 @@ public class NameService {
 
     private List<Element> fetchElementsFromUrls(List<String> urls) {
         List<Element> elements = new ArrayList<>();
+        AtomicInteger errorCount = new AtomicInteger();
+
         urls.forEach(
                 url -> {
                     try {
@@ -78,9 +109,13 @@ public class NameService {
                         Elements nameElements = document.select(".name_summary");
                         elements.addAll(nameElements);
                     } catch (IOException e) {
-                        throw new RuntimeException("Error fetching data from URL: " + url, e);
+                       errorCount.getAndIncrement();
                     }
                 });
+
+        if(errorCount.get() == urls.size()){
+            throw new IllegalArgumentException("이름을 가져올 수 없어요.");
+        }
 
         return elements;
     }
@@ -131,4 +166,34 @@ public class NameService {
     private String getOnlyLetters(String input){
         return input.replaceAll("[^a-zA-Z]", "");
     }
+
+
+    public List<HanjaSurName> readKanjiData() {
+        List<HanjaSurName> kanjiDataList = new ArrayList<>();
+
+        try (CSVReader reader = new CSVReader(new FileReader(csvFilePath))) {
+            List<String[]> rows = reader.readAll();
+            for (String[] row : rows) {
+                HanjaSurName kanjiData = new HanjaSurName();
+                kanjiData.setKoreanHanja(row[0]);
+                kanjiData.setPronounce(row[1]);
+                kanjiData.setJapaneseNameHanja(row[2]);
+                kanjiData.setExample(row[3]);
+                kanjiDataList.add(kanjiData);
+            }
+            return kanjiDataList;
+
+        }catch (Exception e){
+            return kanjiDataList;
+        }
+    }
+
+    public List<HanjaSurName> findKanjiDataByJapaneseNameHanja(String nameHanja){
+        List<HanjaSurName> kanjiDataList = readKanjiData();
+        return kanjiDataList.stream()
+                .filter(kanjiData -> kanjiData.getKoreanHanja().equals(nameHanja))
+                .toList();
+
+    }
+
 }

@@ -10,13 +10,20 @@ public class NameResponse {
     private String firstName;
     private String pronounceFirstName;
     private int households;
+    private String eg;
 
-    public NameResponse(String surName, String pronounceSurName, String firstName, String pronounceFirstName, int households) {
+    public NameResponse(String surName,
+                        String pronounceSurName,
+                        String firstName,
+                        String pronounceFirstName,
+                        int households,
+                        String eg) {
         this.surName = surName;
         this.pronounceSurName = pronounceSurName;
         this.firstName = firstName;
         this.pronounceFirstName = pronounceFirstName;
         this.households = households;
+        this.eg = eg;
     }
 
     public NameResponse(){}
