@@ -3,6 +3,7 @@ package com.example.japanesenamegenerator.independence.repository;
 import com.example.japanesenamegenerator.independence.domain.Activist;
 import feign.Param;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -40,4 +41,5 @@ public interface ActivistRepository extends JpaRepository<Activist, Long> {
         "LIMIT 10", nativeQuery = true)
     List<Activist> findByFullTextSearch(@Param("searchTerm") String searchTerm);
 
+    Optional<Activist> findByNameHanja(String nameHanja);
 }

@@ -32,6 +32,7 @@ public class SecurityConfig {
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                .requestMatchers("/images/**", "/css/**", "/js/**", "favicon.ico").permitAll()
                 .anyRequest().permitAll())  // 모든 요청 허용
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
