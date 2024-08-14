@@ -27,17 +27,17 @@ public class ActivistApiController {
         activistService.deleteAll();
     }
 
-    @PostMapping
-    public void create() {
-
-        List<ActivistOpenApiResponse> activistOpenApiRespons = activistService.fetchApiData();
-        log.info("Activist responses: {}", activistOpenApiRespons);
-
-        List<Activist> entities = activistService.convert(activistOpenApiRespons);
-        log.info("Activist entities: {}", entities);
-
-        activistService.saveAll(entities);
-    }
+//    @PostMapping
+//    public void create() {
+//
+//        List<ActivistOpenApiResponse> activistOpenApiRespons = activistService.fetchApiData();
+//        log.info("Activist responses: {}", activistOpenApiRespons);
+//
+//        List<Activist> entities = activistService.convert(activistOpenApiRespons);
+//        log.info("Activist entities: {}", entities);
+//
+//        activistService.saveAll(entities);
+//    }
 
     @PostMapping("/images")
     public boolean updateImages(){

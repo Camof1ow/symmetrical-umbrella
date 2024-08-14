@@ -197,12 +197,17 @@ public class ActivistService {
 
         try{
             for (ActivistImageUpdateRequest request : requests) {
+                if(request == null){
+                    log.error("Request is null");
+                    continue;
+                }
                 String imagePath = downloadImage(request.getImageUrl());
                 log.info("Processing request: '{}' :: '{}'", request.getName(), imagePath);
                 updateDatabase(request.getName(), imagePath);
             }
         } catch (Exception e){
             log.error("Error processing request: {}", e.getMessage());
+            e.printStackTrace();
         }
 
         return true;
