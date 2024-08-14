@@ -124,9 +124,10 @@ public class ActivistService {
         activistRepository.saveAll(entities);
     }
 
+    @Transactional
     public List<ActivistResponse> findSameOrSimilarName(String name) {
         List<List<Activist>> searchResults = Stream.of(
-                activistRepository.findByNameContaining(name),
+                activistRepository.findTop10ByNameContaining(name),
                 activistRepository.findBySimilarName(name),
                 activistRepository.findByFullTextSearch(name)
             )
@@ -141,6 +142,10 @@ public class ActivistService {
         List<Activist> results = searchResults.getFirst();
         log.info("[search] search name : '{}', response names: {}",
             name, results.stream().map(Activist::getName).toList());
+
+        if(results.size() > 10){
+            results = results.subList(0, 9);
+        }
 
         return proceedActivists(results);
     }
