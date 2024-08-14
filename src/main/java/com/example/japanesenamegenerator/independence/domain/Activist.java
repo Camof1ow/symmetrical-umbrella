@@ -60,5 +60,8 @@ public class Activist extends BaseEntity {
 
     @Column(name = "engaged_organizations")
     private String engagedOrganizations;
+
+    @Column(name = "image_path")
+    private String imagePath;
 }
 

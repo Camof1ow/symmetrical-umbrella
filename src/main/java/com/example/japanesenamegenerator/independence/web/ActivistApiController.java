@@ -39,8 +39,15 @@ public class ActivistApiController {
         activistService.saveAll(entities);
     }
 
+    @PostMapping("/images")
+    public void updateImages(){
+        activistService.updateImages();
+    }
+
     @GetMapping
     public List<ActivistResponse> get(@RequestParam String name){
         return activistService.findSameOrSimilarName(name);
     }
+
+
 }

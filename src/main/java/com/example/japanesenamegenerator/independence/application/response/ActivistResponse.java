@@ -22,4 +22,6 @@ public class ActivistResponse {
     private String activities;
     private String engagedEvents;
     private String engagedOrganizations;
+    private String imagePath;
+
 }

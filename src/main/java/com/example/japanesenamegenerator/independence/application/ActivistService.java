@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator.independence.application;
 
+import com.example.japanesenamegenerator.independence.application.request.ActivistImageUpdateRequest;
 import com.example.japanesenamegenerator.independence.application.response.ActivistOpenApiResponse;
 import com.example.japanesenamegenerator.independence.application.response.ActivistResponse;
 import com.example.japanesenamegenerator.independence.application.response.FamilyKeysAndPageCount;
@@ -8,13 +9,28 @@ import com.example.japanesenamegenerator.independence.domain.Activist;
 import com.example.japanesenamegenerator.independence.repository.ActivistRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -32,6 +48,7 @@ public class ActivistService {
         "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK",
         "AL", "AM", "AN", "AO", "AP", "AQ", "AR", "AS", "AT", "AU"
     );
+    private static final String IMAGE_DIRECTORY = "src/main/resources/static/images/activists/";
 
     public List<ActivistOpenApiResponse> fetchApiData() {
         return movementFamilyKeys.stream()
@@ -135,6 +152,86 @@ public class ActivistService {
 
     public void deleteAll() {
         activistRepository.deleteAll();
+    }
+
+    public void updateImages() {
+        try {
+            Path path = Files.createDirectories(Paths.get(IMAGE_DIRECTORY));
+            log.info("Directory created: {}", path);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        List<ActivistImageUpdateRequest> requests = new ArrayList<>();
+        Pattern pattern = Pattern.compile("\\((.*?)\\)");
+
+        //513
+        IntStream.range(1, 513).forEach(i -> {
+            log.info("Processing page: '{}'", i);
+            String url = String.format("https://search.i815.or.kr/dictionary/moreSearchResult.do?index=%d"
+                + "&pageNum=20&searchWord=&reSearchWord=&inMyeongOrder=&birthPlace=&movementFamily=&isForeigner=", i);
+
+            try {
+                Document doc = Jsoup.connect(url).get();
+
+                doc.select("li.thumb_txt_case01")
+                    .stream()
+                    .filter(li -> !li.select("div.thumb > img").attr("src").equals("/media/"))
+                    .forEach(li -> {
+                        String src = li.select("div.thumb > img").attr("src");
+                        String fullName = li.select(".dict_txt_title").text();
+                        Matcher matcher = pattern.matcher(fullName);
+
+                        if (matcher.find()) {
+                            String chineseName = matcher.group(1);
+
+                            requests.add(new ActivistImageUpdateRequest(chineseName, src));
+                        }
+                    });
+            } catch (IOException e) {
+                log.error("Error processing page {}: {}", i, e.getMessage());
+            }
+        });
+
+        try{
+            for (ActivistImageUpdateRequest request : requests) {
+                log.info("Processing request: '{}' :: '{}'", request.getName(), request.getImageUrl());
+                String imagePath = downloadImage(request.getImageUrl());
+                updateDatabase(request.getName(), imagePath);
+            }
+        } catch (Exception e){
+            log.error("Error processing request: {}", e.getMessage());
+        }
+    }
+    private String downloadImage(String imageUrl) {
+        String fileName = UUID.randomUUID() + ".jpg";
+        Path path = Paths.get(IMAGE_DIRECTORY + fileName);
+
+        try {
+            String targetUrl = "https://search.i815.or.kr" + imageUrl;
+            URL url = new URL(targetUrl);
+
+            try (InputStream in = url.openStream();
+                ReadableByteChannel rbc = Channels.newChannel(in);
+                FileOutputStream fos = new FileOutputStream(path.toFile())) {
+                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+            }
+            return fileName;
+        } catch (IOException e) {
+            log.error("Error downloading image: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private void updateDatabase(String chineseName, String imagePath) {
+        if (imagePath != null) {
+            activistRepository.findByNameHanja(chineseName)
+                .ifPresent(activist -> {
+                    activist.setImagePath(imagePath);
+                    activistRepository.save(activist);
+                });
+        }
     }
 }
 
