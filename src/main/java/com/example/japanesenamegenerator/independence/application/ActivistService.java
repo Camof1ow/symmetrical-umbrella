@@ -1,15 +1,15 @@
 package com.example.japanesenamegenerator.independence.application;
 
+import com.example.japanesenamegenerator.independence.application.response.ActivistOpenApiResponse;
 import com.example.japanesenamegenerator.independence.application.response.ActivistResponse;
+import com.example.japanesenamegenerator.independence.application.response.FamilyKeysAndPageCount;
 import com.example.japanesenamegenerator.independence.client.ActivistClient;
 import com.example.japanesenamegenerator.independence.domain.Activist;
-import com.example.japanesenamegenerator.independence.application.response.ActivistOpenApiResponse;
-import com.example.japanesenamegenerator.independence.application.response.FamilyKeysAndPageCount;
 import com.example.japanesenamegenerator.independence.repository.ActivistRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -116,7 +116,8 @@ public class ActivistService {
             .toList();
 
         if (searchResults.isEmpty()) {
-            throw new NoSuchElementException("No activists found with name: " + name);
+            log.error("No activists found with name: {}", name);
+            return Collections.emptyList();
         }
 
         List<Activist> results = searchResults.getFirst();
