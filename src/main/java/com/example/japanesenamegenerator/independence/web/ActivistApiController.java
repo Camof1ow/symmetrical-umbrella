@@ -39,10 +39,10 @@ public class ActivistApiController {
 //        activistService.saveAll(entities);
 //    }
 
-    @PostMapping("/images")
-    public boolean updateImages(){
-        return activistService.updateImages();
-    }
+//    @PostMapping("/images")
+//    public boolean updateImages(){
+//        return activistService.updateImages();
+//    }
 
     @GetMapping
     public List<ActivistResponse> get(@RequestParam String name){
