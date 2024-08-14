@@ -29,11 +29,11 @@ public class ThrottlingConfig {
     }
 
     private long getCapacity() {
-        return isPeakHour() ? 50 : 100;
+        return isPeakHour() ? 20 : 30;
     }
 
     private long getRefillTokens() {
-        return isPeakHour() ? 50 : 100;
+        return isPeakHour() ? 20 : 30;
     }
 
     public boolean isPeakHour() {
