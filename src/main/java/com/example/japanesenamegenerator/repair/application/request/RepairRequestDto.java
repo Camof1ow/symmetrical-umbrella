@@ -10,17 +10,16 @@ import java.time.LocalDateTime;
 @Setter
 public class RepairRequestDto
 {
-    PageEnum page;
-    String requestData;
-    String requestMessage;
-    LocalDateTime createdAt;
+    private PageEnum page;
+    private String requestData;
 
     public Repair to(){
         Repair repair = new Repair();
-        repair.setCreatedAt(createdAt);
         repair.setPage(page);
         repair.setRequestData(requestData);
         repair.setRequestMessage(requestMessage);
         return repair;
     }
+
+    String requestMessage;
 }

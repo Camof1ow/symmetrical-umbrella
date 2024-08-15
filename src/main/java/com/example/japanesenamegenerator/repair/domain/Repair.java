@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator.repair.domain;
 
+import com.example.japanesenamegenerator.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Table(name = "repair")
-public class Repair {
+public class Repair extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +23,4 @@ public class Repair {
     String requestData;
     @Column(name = "request_message")
     String requestMessage;
-    @Column(name = "created_at")
-    LocalDateTime createdAt;
 }
