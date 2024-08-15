@@ -4,6 +4,7 @@ import com.example.japanesenamegenerator.nameGenerator.model.HanjaName;
 import com.example.japanesenamegenerator.nameGenerator.repository.HanjaNameRepository;
 import com.example.japanesenamegenerator.nameGenerator.responses.NameResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -20,8 +21,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.opencsv.CSVReader;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NameService {
@@ -54,42 +54,45 @@ public class NameService {
         String japaneseFirstName = getElementText(randomFirstName, "strong");
         String fnPronouceChunk = randomFirstName.getElementsByAttributeStarting("href").getFirst().toString()
                 .replace("<a href=\"https://japanese-names.info/first-name/", "");
-        String firstNamePronouce = fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/"));
+        String firstNamePronouce = getOnlyLetters(fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/")));
 
-        if(hanjaSurnameList.isEmpty()){
+        String japaneseLastName;
+        String lastNamePronounce;
+        int households = 9999;
+        String eg = null;
+
+        if (hanjaSurnameList.isEmpty()) {
             String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
             Element lastNameElement = fetchElementFromUrl(surNameUrl);
 
-            int households = parseHouseholds(lastNameElement);
-            String japaneseLastName = getElementText(lastNameElement, "strong");
+            households = parseHouseholds(lastNameElement);
+            japaneseLastName = getElementText(lastNameElement, "strong");
             String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
                     .replace("<a href=\"/last-name/", "");
 
-            String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
+            lastNamePronounce = getOnlyLetters(lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/")));
 
-            return new NameResponse(japaneseLastName,
-                    getOnlyLetters(lastNamePronounce),
-                    japaneseFirstName,
-                    getOnlyLetters(firstNamePronouce),
-                    households,
-                    null);
-
-        }else {
+        } else {
             int bound = hanjaSurnameList.size();
             Random rand = new Random();
             int i = rand.nextInt(bound);
             HanjaName hanjaName = hanjaSurnameList.get(i);
-            String eg ="";
-            if(!hanjaName.getExample().isEmpty()) eg = hanjaName.getExample();
+            if (!hanjaName.getExample().isEmpty()) eg = hanjaName.getExample();
 
-            return new NameResponse(hanjaName.getJapaneseHanja(),
-                    getOnlyLetters(hanjaName.getPronounce()),
-                    japaneseFirstName,
-                    getOnlyLetters(firstNamePronouce),
-                    9999, eg);
+            japaneseLastName = hanjaName.getJapaneseHanja();
+            lastNamePronounce = hanjaName.getPronounce();
+
         }
 
+        NameResponse nameResponse = new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce,
+                households, eg);
+        log.info(String.format("\nName Requested: %s %s %s \n" +
+                                "Name Requested: %s\n",
+                                surName,firstName,gender,
+                                nameResponse.toString()
+        ));
 
+        return nameResponse;
 
     }
 
@@ -113,11 +116,11 @@ public class NameService {
                         Elements nameElements = document.select(".name_summary");
                         elements.addAll(nameElements);
                     } catch (IOException e) {
-                       errorCount.getAndIncrement();
+                        errorCount.getAndIncrement();
                     }
                 });
 
-        if(errorCount.get() == urls.size()){
+        if (errorCount.get() == urls.size()) {
             throw new IllegalArgumentException("이름을 가져올 수 없어요.");
         }
 
@@ -167,7 +170,7 @@ public class NameService {
         }
     }
 
-    private String getOnlyLetters(String input){
+    private String getOnlyLetters(String input) {
         return input.replaceAll("[^a-zA-Z]", "");
     }
 

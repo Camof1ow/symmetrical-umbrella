@@ -27,4 +27,16 @@ public class NameResponse {
     }
 
     public NameResponse(){}
+
+    @Override
+    public String toString() {
+        return "{" +
+                "성씨='" + surName + '\'' +
+                ", 성씨 발음='" + pronounceSurName + '\'' +
+                ", 이름='" + firstName + '\'' +
+                ", 이름 발음='" + pronounceFirstName + '\'' +
+                ", 가구 수=" + households +
+                ", 정보='" + eg + '\'' +
+                '}';
+    }
 }
