@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.likes.application;
+package com.example.japanesenamegenerator.likes.application.response;
 
 import lombok.Getter;
 import lombok.Setter;
