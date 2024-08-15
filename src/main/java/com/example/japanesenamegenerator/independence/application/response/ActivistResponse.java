@@ -24,4 +24,8 @@ public class ActivistResponse {
     private String engagedOrganizations;
     private String imagePath;
 
+    public String getContent() {
+        content = content.replace("\n","\n\n");
+        return content;
+    }
 }
