@@ -4,12 +4,19 @@ on:
     workflows: ["Java CI with Gradle"]
     types:
       - completed
+    branches:
+      - master  # master 브랜치에 대해서만 실행
+
 env:
   DOCKER_HUB_REPOSITORY: yelloman/jap-your-name
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: |
+      github.event.workflow_run.conclusion == 'success' && 
+      github.event.workflow_run.head_branch == 'master' && 
+      github.event.workflow_run.event == 'push'
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
