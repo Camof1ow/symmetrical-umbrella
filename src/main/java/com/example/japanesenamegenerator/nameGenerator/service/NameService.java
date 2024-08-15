@@ -145,8 +145,10 @@ public class NameService {
     private int parseHouseholds(Element element) {
         if (element == null) return 9999;
         String householdsText = element.text();
-        String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
-        return Integer.parseInt(extractedNumber);
+        int i = element.text().lastIndexOf(':');
+        String substring = householdsText.substring(i + 1);
+        String numbersOnly = substring.replaceAll("[^0-9]", "");
+        return Integer.parseInt(numbersOnly);
     }
 
     private String getElementText(Element element, String tag) {
