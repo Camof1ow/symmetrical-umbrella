@@ -124,25 +124,38 @@ public class ActivistService {
         activistRepository.saveAll(entities);
     }
 
+    @Transactional
     public List<ActivistResponse> findSameOrSimilarName(String name) {
-        List<List<Activist>> searchResults = Stream.of(
-                activistRepository.findByNameContaining(name),
-                activistRepository.findBySimilarName(name),
-                activistRepository.findByFullTextSearch(name)
-            )
-            .filter(results -> !ObjectUtils.isEmpty(results))
-            .toList();
+        List<Activist> searchResults;
+        searchResults = activistRepository.findBySimilarName(name);
+
+        if(searchResults == null || searchResults.isEmpty()){
+            searchResults = activistRepository.findByFullTextSearch(name);
+        }
+        if(searchResults == null || searchResults.isEmpty()){
+            searchResults = activistRepository.findTop10ByNameContaining(name);
+        }
+//        List<List<Activist>> searchResults = Stream.of(
+//                activistRepository.findTop10ByNameContaining(name),
+//                activistRepository.findBySimilarName(name),
+//                activistRepository.findByFullTextSearch(name)
+//            )
+//            .filter(results -> !ObjectUtils.isEmpty(results))
+//            .toList();
 
         if (searchResults.isEmpty()) {
             log.error("No activists found with name: {}", name);
             return Collections.emptyList();
         }
 
-        List<Activist> results = searchResults.getFirst();
-        log.info("[search] search name : '{}', response names: {}",
-            name, results.stream().map(Activist::getName).toList());
+        if(searchResults.size() > 10){
+            searchResults = searchResults.subList(0, 9);
+        }
 
-        return proceedActivists(results);
+        log.info("[search] search name : '{}', response names: {}",
+            name, searchResults.stream().map(Activist::getName).toList());
+
+        return proceedActivists(searchResults);
     }
 
     private List<ActivistResponse> proceedActivists(List<Activist> results) {
