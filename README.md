@@ -499,7 +499,7 @@ public boolean isPeakHour() {
 
 # [4] Contribution
 
-- ✨[Camof1ow](https://github.com/Camof1ow) : 좋아요, 시스템 장애 수리 요청접수 및 [내이름은?](https://yourname815.vercel.app/myname) 기능개발.
+- ✨[Camof1ow](https://github.com/Camof1ow) : 좋아요, 기능수리 요청 및 [내이름은?](https://yourname815.vercel.app/myname) 기능개발.
 - ✨[dlo](https://github.com/Kang-YongHo) : 서버 보안 기능 및 [독립운동가 찾기](https://yourname815.vercel.app/activist) 기능 개발.
 
 # [5] Acknowledgement
