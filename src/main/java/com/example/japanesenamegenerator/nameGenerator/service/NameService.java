@@ -9,11 +9,7 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class NameService {
@@ -70,7 +66,16 @@ public class NameService {
         urls.forEach(
                 url -> {
                     try {
-                        Document document = Jsoup.connect(url).get();
+                        Document document = Jsoup.connect(url)
+                                .header("Host", "japanese-names.info")
+                                .header("Accept-Language", "en-US,en;q=0.9")
+                                .header("Referer", "https://japanese-names.info/")
+                                .userAgent("Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36")
+                                .timeout(10000)
+                                .method(Connection.Method.GET)
+                                .execute()
+                                .parse();
+
                         Elements nameElements = document.select(".name_summary");
                         elements.addAll(nameElements);
                     } catch (IOException e) {
@@ -89,7 +94,16 @@ public class NameService {
 
     private Element fetchElementFromUrl(String url) {
         try {
-            Document document = Jsoup.connect(url).get();
+            Document document = Jsoup.connect(url)
+                    .header("Host", "japanese-names.info")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .header("Referer", "https://japanese-names.info/")
+                    .userAgent("Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36")
+                    .timeout(10000)
+                    .method(Connection.Method.GET)
+                    .execute()
+                    .parse();
+
             return document.selectFirst(".name_summary");
         } catch (IOException e) {
             throw new RuntimeException("Error fetching data from URL: " + url, e);
