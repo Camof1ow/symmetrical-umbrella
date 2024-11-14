@@ -3,6 +3,7 @@ package com.example.japanesenamegenerator.independence.repository;
 import com.example.japanesenamegenerator.independence.domain.Activist;
 import feign.Param;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -31,7 +32,7 @@ public interface ActivistRepository extends JpaRepository<Activist, Long> {
         nativeQuery = true)
     List<Activist> findBySimilarName(@Param("name") String name);
 
-    List<Activist> findByNameContaining(String name);
+    List<Activist> findTop10ByNameContaining(String name);
 
     @Query(value = "SELECT *, MATCH(name, content) AGAINST(:searchTerm IN BOOLEAN MODE) AS relevance " +
         "FROM activists " +
@@ -40,4 +41,5 @@ public interface ActivistRepository extends JpaRepository<Activist, Long> {
         "LIMIT 10", nativeQuery = true)
     List<Activist> findByFullTextSearch(@Param("searchTerm") String searchTerm);
 
+    Optional<List<Activist>> findByNameHanja(String nameHanja);
 }

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/name")
+@RequestMapping("/api/v1/name")
 public class NameController {
 
     private final NameService nameService;

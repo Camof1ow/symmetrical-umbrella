@@ -1,6 +1,10 @@
 package com.example.japanesenamegenerator.nameGenerator.service;
 
+import com.example.japanesenamegenerator.nameGenerator.model.HanjaName;
+import com.example.japanesenamegenerator.nameGenerator.repository.HanjaNameRepository;
 import com.example.japanesenamegenerator.nameGenerator.responses.NameResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -11,14 +15,21 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.*;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class NameService {
 
     private static final String NAME_CONVERTER_URL = "http://www.hipenpal.com/tool/japanese_old_kanji_characters_to_new_converter_in_korean.php";
     private static final String LAST_NAME_URL_TEMPLATE = "https://japanese-names.info/last-names/search-result/freeword-%s/";
     private static final String FIRST_NAME_URL_TEMPLATE = "https://japanese-names.info/first-names/search-result/%sfreeword-%s/";
+    private final String csvFilePath = "src/main/resources/surNameHanja.csv";
+    private final HanjaNameRepository hanjaNameRepository;
 
     public NameResponse getNameInfo(String surName, String firstName, String gender) {
+
+        List<HanjaName> hanjaSurnameList = hanjaNameRepository.findByKoreanHanja(surName);
+
         String convertedName = nameConvert(String.format("%s_%s", surName, firstName));
         String[] nameParts = convertedName.split("_");
         surName = nameParts[0];
@@ -37,19 +48,46 @@ public class NameService {
         String japaneseFirstName = getElementText(randomFirstName, "strong");
         String fnPronouceChunk = randomFirstName.getElementsByAttributeStarting("href").getFirst().toString()
                 .replace("<a href=\"https://japanese-names.info/first-name/", "");
+        String firstNamePronouce = getOnlyLetters(fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/")));
 
-        String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
-        Element lastNameElement = fetchElementFromUrl(surNameUrl);
+        String japaneseLastName;
+        String lastNamePronounce;
+        int households = 9999;
+        String eg = null;
 
-        int households = parseHouseholds(lastNameElement);
-        String japaneseLastName = getElementText(lastNameElement, "strong");
-        String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
-                .replace("<a href=\"/last-name/", "");
+        if (hanjaSurnameList.isEmpty()) {
+            String surNameUrl = String.format(LAST_NAME_URL_TEMPLATE, surName);
+            Element lastNameElement = fetchElementFromUrl(surNameUrl);
 
-        String firstNamePronouce = fnPronouceChunk.substring(0, fnPronouceChunk.indexOf("/"));
-        String lastNamePronounce = lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/"));
+            households = parseHouseholds(lastNameElement);
+            japaneseLastName = getElementText(lastNameElement, "strong");
+            String lnPronouceChunk = lastNameElement.getElementsByAttributeStarting("href").getFirst().toString()
+                    .replace("<a href=\"/last-name/", "");
 
-        return new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce, households);
+            lastNamePronounce = getOnlyLetters(lnPronouceChunk.substring(0, lnPronouceChunk.indexOf("/")));
+
+        } else {
+            int bound = hanjaSurnameList.size();
+            Random rand = new Random();
+            int i = rand.nextInt(bound);
+            HanjaName hanjaName = hanjaSurnameList.get(i);
+            if (!hanjaName.getExample().isEmpty()) eg = hanjaName.getExample();
+
+            japaneseLastName = hanjaName.getJapaneseHanja();
+            lastNamePronounce = hanjaName.getPronounce();
+
+        }
+
+        NameResponse nameResponse = new NameResponse(japaneseLastName, lastNamePronounce, japaneseFirstName, firstNamePronouce,
+                households, eg);
+        log.info(String.format("\nName Requested: %s %s %s \n" +
+                                "Name Requested: %s\n",
+                                surName,firstName,gender,
+                                nameResponse.toString()
+        ));
+
+        return nameResponse;
+
     }
 
     private List<String> createFirstNameUrls(List<String> firstNameList, String gender) {
@@ -63,6 +101,8 @@ public class NameService {
 
     private List<Element> fetchElementsFromUrls(List<String> urls) {
         List<Element> elements = new ArrayList<>();
+        AtomicInteger errorCount = new AtomicInteger();
+
         urls.forEach(
                 url -> {
                     try {
@@ -79,9 +119,13 @@ public class NameService {
                         Elements nameElements = document.select(".name_summary");
                         elements.addAll(nameElements);
                     } catch (IOException e) {
-                        throw new RuntimeException("Error fetching data from URL: " + url, e);
+                        errorCount.getAndIncrement();
                     }
                 });
+
+        if (errorCount.get() == urls.size()) {
+            throw new IllegalArgumentException("이름을 가져올 수 없어요.");
+        }
 
         return elements;
     }
@@ -111,10 +155,12 @@ public class NameService {
     }
 
     private int parseHouseholds(Element element) {
-        if (element == null) throw new IllegalStateException("No data found for households");
+        if (element == null) return 9999;
         String householdsText = element.text();
-        String extractedNumber = householdsText.split("aprx\\.")[1].trim().replace(",", "");
-        return Integer.parseInt(extractedNumber);
+        int i = element.text().lastIndexOf(':');
+        String substring = householdsText.substring(i + 1);
+        String numbersOnly = substring.replaceAll("[^0-9]", "");
+        return Integer.parseInt(numbersOnly);
     }
 
     private String getElementText(Element element, String tag) {
@@ -137,4 +183,10 @@ public class NameService {
             throw new IllegalArgumentException("Error converting name", e);
         }
     }
+
+    private String getOnlyLetters(String input) {
+        return input.replaceAll("[^a-zA-Z]", "");
+    }
+
+
 }

@@ -22,4 +22,10 @@ public class ActivistResponse {
     private String activities;
     private String engagedEvents;
     private String engagedOrganizations;
+    private String imagePath;
+
+    public String getContent() {
+        content = content.replace("\n","\n\n");
+        return content;
+    }
 }
